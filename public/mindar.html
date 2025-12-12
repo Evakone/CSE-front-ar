@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MindAR - A-Frame</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+               font-family: sans-serif; font-size: 18px; color: white; 
+               background: rgba(0,0,0,0.7); padding: 20px; border-radius: 8px; z-index: 999; }
+  </style>
+</head>
+<body>
+  <div id="loading">Initializing AR...</div>
+  
+  <a-scene
+    mindar-image="imageTargetSrc: ./assets/markers/target.mind; maxTrack: 1; filterMinCF: 0.001; filterBeta: 10"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-assets>
+      <a-asset-item id="model" src="./assets/models/model.glb"></a-asset-item>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-gltf-model
+        src="#model"
+        position="0 0 0"
+        rotation="0 0 0"
+        scale="0.1 0.1 0.1"
+        animation-mixer="clip: *; loop: repeat"
+      ></a-gltf-model>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const scene = document.querySelector('a-scene');
+    const loading = document.getElementById('loading');
+    
+    scene.addEventListener('arReady', () => {
+      loading.style.display = 'none';
+      console.log('MindAR ready');
+    });
+    
+    scene.addEventListener('arError', (e) => {
+      loading.textContent = 'AR Error: ' + e.detail.error;
+    });
+    
+    const target = document.querySelector('[mindar-image-target]');
+    target.addEventListener('targetFound', () => console.log('Target found'));
+    target.addEventListener('targetLost', () => console.log('Target lost'));
+  </script>
+</body>
+</html>

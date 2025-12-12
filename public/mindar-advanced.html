@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MindAR - Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        #ui button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+        }
+
+        #status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <div id="status">Loading...</div>
+    <div id="ui">
+        <button id="btn-animate">Toggle Animation</button>
+        <button id="btn-reset">Reset</button>
+    </div>
+
+    <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/",
+      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+    }
+  }
+  </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { MindARThree } from 'mindar-image-three';
+
+        const container = document.getElementById('container');
+        const status = document.getElementById('status');
+
+        // Initialize MindAR
+        const mindarThree = new MindARThree({
+            container,
+            imageTargetSrc: './assets/markers/target.mind',
+            maxTrack: 1,
+            filterMinCF: 0.001,
+            filterBeta: 10
+        });
+
+        const { renderer, scene, camera } = mindarThree;
+
+        // Renderer
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(0.5, 1, 0.5);
+        scene.add(dirLight);
+
+        // Loaders
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/libs/draco/');
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.setDRACOLoader(dracoLoader);
+
+        // State
+        let model = null, mixer = null, animationRunning = true;
+        const clock = new THREE.Clock();
+        const anchor = mindarThree.addAnchor(0);
+
+        // Load model
+        gltfLoader.load('./assets/models/CSE-front-ar.glb', (gltf) => {
+            model = gltf.scene;
+            model.position.set(0, 0, 0);
+            model.rotation.set(0, 0, 0);
+            model.scale.set(0.1, 0.1, 0.1);
+            anchor.group.add(model);
+
+            if (gltf.animations.length > 0) {
+                mixer = new THREE.AnimationMixer(model);
+                gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+            }
+            status.textContent = 'Ready - Point at marker';
+        });
+
+        // Tracking events
+        anchor.onTargetFound = () => status.textContent = 'Tracking';
+        anchor.onTargetLost = () => status.textContent = 'Searching...';
+
+        // Animation loop
+        function animate() {
+            if (mixer && animationRunning) mixer.update(clock.getDelta());
+            renderer.render(scene, camera);
+        }
+
+        // Start
+        mindarThree.start().then(() => {
+            renderer.setAnimationLoop(animate);
+        });
+
+        // Controls
+        document.getElementById('btn-animate').onclick = () => animationRunning = !animationRunning;
+        document.getElementById('btn-reset').onclick = () => {
+            if (model) {
+                model.position.set(0, 0, 0);
+                model.rotation.set(0, 0, 0);
+                model.scale.set(0.1, 0.1, 0.1);
+            }
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plane AR - Model Viewer</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .controls button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            background: #007AFF;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <model-viewer id="viewer" src="./assets/models/CSE-front-ar.glb" ios-src="./assets/models/CSE-front-ar.usdz"
+        alt="3D Model" ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor" camera-controls
+        shadow-intensity="1" environment-image="neutral">
+        <button slot="ar-button" id="ar-btn">View in AR</button>
+    </model-viewer>
+
+    <div class="controls">
+        <button id="scale-up">Scale +</button>
+        <button id="scale-down">Scale −</button>
+        <button id="rotate">Rotate 90°</button>
+    </div>
+
+    <script>
+        const viewer = document.getElementById('viewer');
+        let scale = 1, rotation = 0;
+
+        document.getElementById('scale-up').onclick = () => {
+            scale = Math.min(scale * 1.25, 5);
+            viewer.scale = `${scale} ${scale} ${scale}`;
+        };
+
+        document.getElementById('scale-down').onclick = () => {
+            scale = Math.max(scale * 0.8, 0.1);
+            viewer.scale = `${scale} ${scale} ${scale}`;
+        };
+
+        document.getElementById('rotate').onclick = () => {
+            rotation = (rotation + 90) % 360;
+            viewer.orientation = `0 ${rotation}deg 0`;
+        };
+
+        if (!navigator.xr) {
+            document.getElementById('ar-btn').textContent = 'AR not supported';
+            document.getElementById('ar-btn').disabled = true;
+        }
+    </script>
+</body>
+
+</html>

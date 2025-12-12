@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MindAR Debug</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        #panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            width: 260px;
+            font-size: 12px;
+        }
+
+        .section {
+            margin-bottom: 12px;
+        }
+
+        .section h4 {
+            margin: 0 0 8px 0;
+            color: #4CAF50;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .row label {
+            width: 50px;
+        }
+
+        .row input {
+            flex: 1;
+            margin: 0 8px;
+        }
+
+        .row .val {
+            width: 45px;
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btns button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+        }
+
+        #out {
+            background: #111;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 10px;
+            white-space: pre;
+            margin-top: 10px;
+        }
+
+        #copy {
+            width: 100%;
+            padding: 8px;
+            background: #2196F3;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        #status {
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #status.found {
+            background: #4CAF50;
+        }
+
+        #status.lost {
+            background: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="panel">
+        <div id="status" class="lost">Initializing...</div>
+
+        <div class="section">
+            <h4>Position</h4>
+            <div class="row"><label>X:</label><input type="range" id="px" min="-2" max="2" step="0.01" value="0"><span
+                    class="val" id="pxv">0.00</span></div>
+            <div class="row"><label>Y:</label><input type="range" id="py" min="-2" max="2" step="0.01" value="0"><span
+                    class="val" id="pyv">0.00</span></div>
+            <div class="row"><label>Z:</label><input type="range" id="pz" min="-2" max="2" step="0.01" value="0"><span
+                    class="val" id="pzv">0.00</span></div>
+        </div>
+
+        <div class="section">
+            <h4>Rotation</h4>
+            <div class="row"><label>X:</label><input type="range" id="rx" min="-180" max="180" step="1" value="0"><span
+                    class="val" id="rxv">0</span></div>
+            <div class="row"><label>Y:</label><input type="range" id="ry" min="-180" max="180" step="1" value="0"><span
+                    class="val" id="ryv">0</span></div>
+            <div class="row"><label>Z:</label><input type="range" id="rz" min="-180" max="180" step="1" value="0"><span
+                    class="val" id="rzv">0</span></div>
+        </div>
+
+        <div class="section">
+            <h4>Scale</h4>
+            <div class="row"><label>All:</label><input type="range" id="sc" min="0.01" max="2" step="0.01"
+                    value="0.1"><span class="val" id="scv">0.10</span></div>
+        </div>
+
+        <div class="section">
+            <h4>Quick</h4>
+            <div class="btns">
+                <button id="reset">Reset</button>
+                <button id="flipy">Flip Y</button>
+                <button id="flipz">Flip Z</button>
+                <button id="r90x">+90 X</button>
+                <button id="r90y">+90 Y</button>
+            </div>
+        </div>
+
+        <div id="out"></div>
+        <button id="copy">Copy</button>
+    </div>
+
+    <a-scene mindar-image="imageTargetSrc: ./assets/markers/target.mind" vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+        <a-assets><a-asset-item id="model" src="./assets/models/model.glb"></a-asset-item></a-assets>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-gltf-model id="m" src="#model" position="0 0 0" rotation="0 0 0" scale="0.1 0.1 0.1"
+                animation-mixer></a-gltf-model>
+            <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1"
+                material="color:#444;opacity:0.5;wireframe:true"></a-plane>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        const m = document.getElementById('m'), out = document.getElementById('out'), status = document.getElementById('status');
+        const ids = ['px', 'py', 'pz', 'rx', 'ry', 'rz', 'sc'];
+
+        function upd() {
+            const p = { x: +px.value, y: +py.value, z: +pz.value };
+            const r = { x: +rx.value, y: +ry.value, z: +rz.value };
+            const s = +sc.value;
+            m.setAttribute('position', p);
+            m.setAttribute('rotation', r);
+            m.setAttribute('scale', { x: s, y: s, z: s });
+            pxv.textContent = p.x.toFixed(2); pyv.textContent = p.y.toFixed(2); pzv.textContent = p.z.toFixed(2);
+            rxv.textContent = r.x; ryv.textContent = r.y; rzv.textContent = r.z;
+            scv.textContent = s.toFixed(2);
+            out.textContent = `A-Frame:\nposition="${p.x} ${p.y} ${p.z}"\nrotation="${r.x} ${r.y} ${r.z}"\nscale="${s} ${s} ${s}"\n\nThree.js:\nmodel.position.set(${p.x}, ${p.y}, ${p.z});\nmodel.rotation.set(${(r.x * Math.PI / 180).toFixed(3)}, ${(r.y * Math.PI / 180).toFixed(3)}, ${(r.z * Math.PI / 180).toFixed(3)});\nmodel.scale.set(${s}, ${s}, ${s});`;
+        }
+
+        ids.forEach(id => document.getElementById(id).oninput = upd);
+        reset.onclick = () => { px.value = py.value = pz.value = rx.value = ry.value = rz.value = 0; sc.value = 0.1; upd(); };
+        flipy.onclick = () => { ry.value = (+ry.value + 180) % 360; upd(); };
+        flipz.onclick = () => { rz.value = (+rz.value + 180) % 360; upd(); };
+        r90x.onclick = () => { rx.value = (+rx.value + 90) % 360; upd(); };
+        r90y.onclick = () => { ry.value = (+ry.value + 90) % 360; upd(); };
+        copy.onclick = () => { navigator.clipboard.writeText(out.textContent); copy.textContent = 'Copied!'; setTimeout(() => copy.textContent = 'Copy', 2000); };
+
+        document.querySelector('a-scene').addEventListener('arReady', () => { status.textContent = 'Ready'; status.className = 'lost'; });
+        document.querySelector('[mindar-image-target]').addEventListener('targetFound', () => { status.textContent = 'TRACKING'; status.className = 'found'; });
+        document.querySelector('[mindar-image-target]').addEventListener('targetLost', () => { status.textContent = 'Searching...'; status.className = 'lost'; });
+
+        upd();
+    </script>
+</body>
+
+</html>
